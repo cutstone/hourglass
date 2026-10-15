@@ -18,6 +18,8 @@ typedef struct {
     int width;        // simulation area in pixels (display size)
     int height;       //
     int grains;       // number of grains
+    float glass_size; // 0..1, glass size relative to the simulation area
+    int glass_line;   // thickness of the drawn glass outline, in pixels
     int neck_width;   // width of the opening between the bulbs, in pixels (even values)
     float gravity;    // pixels / s^2
     float max_speed;  // pixels / s

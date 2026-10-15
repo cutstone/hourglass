@@ -2,13 +2,13 @@
 
 A physics-simulated sand timer for the **ESP32-S3** and a **2.9" 168×384 ST7305 monochrome LCD**.
 
-About 5000 individually simulated grains fall through the neck and settle into a realistic heap.
+About 7500 individually simulated grains fall through the neck and settle into a realistic heap.
 When the top bulb is empty, the glass flips over and starts again. You can set the physics
 parameters and Wi-Fi from a built-in web UI, and update the firmware over the air.
 
 All firmware is built in GitHub Actions. The only thing you do locally is flash the result.
 
-> **Status:** early development. The hourglass runs: 5000 simulated grains, about 75 seconds
+> **Status:** early development. The hourglass runs: 7500 simulated grains, about 2 minutes
 > per run, then the glass flips and starts again. Wi-Fi, the web UI and OTA are in progress.
 
 ## Hardware
@@ -51,7 +51,7 @@ grid of the screen handles collisions with the glass and with other grains.
   turns over in an animated rotation and the sand runs again.
 
 There is no target duration: the run time comes out of the physics. With the defaults
-(5000 grains, a 4 pixel neck) a run takes about 75 seconds. The physics uses about 7 ms per
+(7500 grains, a 4 pixel neck) a run takes about 112 seconds. The physics uses about 11 ms per
 frame on the ESP32-S3, and the display runs at 30 fps.
 
 The simulation (`components/sandsim`) is plain C without ESP-IDF dependencies, so it also
@@ -91,7 +91,7 @@ idf.py build
 - [x] ESP-IDF project scaffold, 16 MB partition table with two OTA slots
 - [x] CI: build and clang-format check
 - [x] ST7305 driver and 1 bpp framebuffer
-- [x] Particle sand simulation (5000 grains, 30 fps)
+- [x] Particle sand simulation (7500 grains, 30 fps)
 - [x] Glass outline and flip animation
 - [ ] SoftAP Wi-Fi provisioning
 - [ ] Web UI for physics parameters and OTA upload

@@ -45,7 +45,9 @@ void sandsim_default_params(sandsim_params_t *p)
     *p = (sandsim_params_t){
         .width = 168,
         .height = 384,
-        .grains = 5000,
+        .grains = 7500,
+        .glass_size = 0.9f,
+        .glass_line = 2,
         .neck_width = 4,
         .gravity = 600.0f,
         .max_speed = 240.0f,
@@ -81,9 +83,9 @@ static inline bool is_free(sandsim_t *s, int x, int y)
 static float glass_half_width(const sandsim_params_t *p, int y)
 {
     const float margin = 3.0f;
-    const float corner = 14.0f; // radius of the rounded bulb ends
-    float max_half = p->width / 2.0f - margin;
-    float half_height = p->height / 2.0f - margin;
+    float corner = 14.0f * p->glass_size; // radius of the rounded bulb ends
+    float max_half = (p->width / 2.0f - margin) * p->glass_size;
+    float half_height = (p->height / 2.0f - margin) * p->glass_size;
     float neck = p->neck_width / 2.0f;
 
     float dist = fabsf(y + 0.5f - p->height / 2.0f); // from the neck
@@ -118,17 +120,20 @@ static bool build_glass(sandsim_t *s)
         }
     }
 
-    // Outline: wall pixels that touch the interior.
+    // Outline: wall pixels within glass_line pixels of the interior. Around the neck the
+    // line stays 1 pixel, so the narrow middle keeps its shape.
+    const int neck_zone = h / 8;
     int count = 0;
     for (int pass = 0; pass < 2; pass++) {
         for (int y = 0; y < h; y++) {
+            int r = abs(y - h / 2) < neck_zone ? 1 : s->p.glass_line;
             for (int x = 0; x < w; x++) {
                 if (*cell(s, x, y) != CELL_WALL) {
                     continue;
                 }
                 bool edge = false;
-                for (int dy = -1; dy <= 1 && !edge; dy++) {
-                    for (int dx = -1; dx <= 1 && !edge; dx++) {
+                for (int dy = -r; dy <= r && !edge; dy++) {
+                    for (int dx = -r; dx <= r && !edge; dx++) {
                         edge = is_free(s, x + dx, y + dy);
                     }
                 }

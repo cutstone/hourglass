@@ -1,0 +1,53 @@
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+    tags-ignore: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  IDF_VERSION: v5.5.1
+  IDF_TARGET: esp32s3
+
+jobs:
+  format:
+    name: clang-format
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check formatting
+        run: |
+          files=$(git ls-files '*.c' '*.h')
+          if [ -z "$files" ]; then echo "No sources"; exit 0; fi
+          clang-format --version
+          clang-format --dry-run --Werror $files
+
+  build:
+    name: Firmware
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build with ESP-IDF
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: ${{ env.IDF_VERSION }}
+          target: ${{ env.IDF_TARGET }}
+          command: |
+            idf.py build &&
+            cd build &&
+            python -m esptool --chip esp32s3 merge_bin -o hourglass-merged.bin @flash_args
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: hourglass-firmware
+          if-no-files-found: error
+          path: |
+            build/hourglass-merged.bin
+            build/hourglass.bin
+            build/bootloader/bootloader.bin
+            build/partition_table/partition-table.bin
+            build/flash_args

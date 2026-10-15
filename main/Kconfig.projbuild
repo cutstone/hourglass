@@ -1,0 +1,33 @@
+menu "Hourglass hardware"
+
+    config HOURGLASS_LCD_PIN_CS
+        int "LCD CS GPIO"
+        range 0 48
+        default 10
+
+    config HOURGLASS_LCD_PIN_MOSI
+        int "LCD MOSI (SDA) GPIO"
+        range 0 48
+        default 11
+
+    config HOURGLASS_LCD_PIN_SCK
+        int "LCD SCK (SCL) GPIO"
+        range 0 48
+        default 12
+
+    config HOURGLASS_LCD_PIN_DC
+        int "LCD D/C GPIO"
+        range 0 48
+        default 13
+
+    config HOURGLASS_LCD_PIN_RST
+        int "LCD RESET GPIO"
+        range 0 48
+        default 14
+
+    config HOURGLASS_LCD_PIXEL_CLOCK_MHZ
+        int "LCD SPI clock (MHz)"
+        range 1 40
+        default 20
+
+endmenu

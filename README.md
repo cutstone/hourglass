@@ -8,8 +8,8 @@ parameters and Wi-Fi from a built-in web UI, and update the firmware over the ai
 
 All firmware is built in GitHub Actions. The only thing you do locally is flash the result.
 
-> **Status:** early development. Implemented so far: project scaffold, CI build and the
-> display driver with a test pattern. The sand simulation, web UI and OTA are in progress.
+> **Status:** early development. The hourglass runs: 5000 simulated grains, about 75 seconds
+> per run, then the glass flips and starts again. Wi-Fi, the web UI and OTA are in progress.
 
 ## Hardware
 
@@ -35,12 +35,27 @@ The SPI clock is 20 MHz on `SPI2_HOST`. To use different pins, change them under
 - **Use high power mode:** on by default. It gives a 32 Hz refresh for smooth animation;
   switch it off for a 1 Hz refresh.
 
-### Test pattern
+## How the simulation works
 
-The current firmware shows a test pattern: a frame, an hourglass outline, a solid square in
-the **top-left** corner and a small block sliding downwards. The serial log reports the frame
-rate every 5 seconds. If the square is not in the top-left corner, turn on
-*Rotate display 180 degrees*.
+Every grain is a particle with a position and a velocity, and occupies one pixel. An occupancy
+grid of the screen handles collisions with the glass and with other grains.
+
+- **Falling:** gravity accelerates the grains up to a top speed. Each frame is split into
+  substeps, so no grain jumps more than one pixel at a time.
+- **Landing:** a grain that lands bounces a little (elasticity) and loses its sideways speed
+  (friction). If there is room, it rolls diagonally down, so the heaps form natural slopes. On
+  the smooth glass it also slides down walls that are flatter than that.
+- **Resting:** grains with nowhere to go fall asleep and cost almost nothing until room opens
+  up below them.
+- **Flipping:** when the top bulb is empty and nothing has moved for 1.5 seconds, the glass
+  turns over in an animated rotation and the sand runs again.
+
+There is no target duration: the run time comes out of the physics. With the defaults
+(5000 grains, a 4 pixel neck) a run takes about 75 seconds. The physics uses about 7 ms per
+frame on the ESP32-S3, and the display runs at 30 fps.
+
+The simulation (`components/sandsim`) is plain C without ESP-IDF dependencies, so it also
+builds and runs on a PC.
 
 ## Getting the firmware
 
@@ -76,8 +91,8 @@ idf.py build
 - [x] ESP-IDF project scaffold, 16 MB partition table with two OTA slots
 - [x] CI: build and clang-format check
 - [x] ST7305 driver and 1 bpp framebuffer
-- [ ] Particle sand simulation (~5000 grains, ~30 fps)
-- [ ] Glass outline and flip animation
+- [x] Particle sand simulation (5000 grains, 30 fps)
+- [x] Glass outline and flip animation
 - [ ] SoftAP Wi-Fi provisioning
 - [ ] Web UI for physics parameters and OTA upload
 - [ ] Release workflow with flash scripts

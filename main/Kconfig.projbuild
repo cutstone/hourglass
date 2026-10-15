@@ -30,4 +30,17 @@ menu "Hourglass hardware"
         range 1 40
         default 20
 
+    config HOURGLASS_LCD_ROTATE_180
+        bool "Rotate display 180 degrees"
+        default n
+        help
+            Turn the picture upside down if the hourglass is mounted the other way round.
+
+    config HOURGLASS_LCD_HIGH_POWER
+        bool "Use high power mode (32 Hz refresh)"
+        default y
+        help
+            The ST7305 driver leaves the panel in low power mode with a slow refresh rate.
+            High power mode is needed for smooth sand animation.
+
 endmenu

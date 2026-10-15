@@ -8,15 +8,15 @@ parameters and Wi-Fi from a built-in web UI, and update the firmware over the ai
 
 All firmware is built in GitHub Actions. The only thing you do locally is flash the result.
 
-> **Status:** early development. Implemented so far: project scaffold and CI build.
-> The display driver, sand simulation, web UI and OTA are in progress.
+> **Status:** early development. Implemented so far: project scaffold, CI build and the
+> display driver with a test pattern. The sand simulation, web UI and OTA are in progress.
 
 ## Hardware
 
 | Part    | Details                                                     |
 | ------- | ----------------------------------------------------------- |
 | MCU     | ESP32-S3-WROOM-1-N16R8 (16 MB flash, 8 MB octal PSRAM)      |
-| Display | 2.9" ST7305 reflective mono LCD, 168×384, SPI, portrait     |
+| Display | 2.9" ST7305 reflective mono LCD, 168×384, SPI, portrait (YDP290H004-V3) |
 
 ### Display wiring (defaults)
 
@@ -29,7 +29,18 @@ All firmware is built in GitHub Actions. The only thing you do locally is flash 
 | RESET        | 14   |
 
 The SPI clock is 20 MHz on `SPI2_HOST`. To use different pins, change them under
-`idf.py menuconfig` → *Hourglass hardware*.
+`idf.py menuconfig` → *Hourglass hardware*. In the same menu you can:
+
+- **Rotate display 180 degrees:** use this if the picture is upside down.
+- **Use high power mode:** on by default. It gives a 32 Hz refresh for smooth animation;
+  switch it off to save power.
+
+### Test pattern
+
+The current firmware shows a test pattern: a frame, an hourglass outline, a solid square in
+the **top-left** corner and a small block sliding downwards. The serial log reports the frame
+rate every 5 seconds. If the square is not in the top-left corner, turn on
+*Rotate display 180 degrees*.
 
 ## Getting the firmware
 
@@ -64,12 +75,19 @@ idf.py build
 
 - [x] ESP-IDF project scaffold, 16 MB partition table with two OTA slots
 - [x] CI: build and clang-format check
-- [ ] ST7305 driver and 1 bpp framebuffer
+- [x] ST7305 driver and 1 bpp framebuffer
 - [ ] Particle sand simulation (~5000 grains, ~30 fps)
 - [ ] Glass outline and flip animation
 - [ ] SoftAP Wi-Fi provisioning
 - [ ] Web UI for physics parameters and OTA upload
 - [ ] Release workflow with flash scripts
+
+## Credits
+
+- Panel driver: [kevincoooool/esp_lcd_st7305](https://components.espressif.com/components/kevincoooool/esp_lcd_st7305)
+  (Apache-2.0), fetched by the ESP-IDF component manager at build time.
+- High power mode settings are taken from
+  [FT-tele/ST7305_MonoTFT_Arduino_Library](https://github.com/FT-tele/ST7305_MonoTFT_Arduino_Library) (MIT).
 
 ## License
 

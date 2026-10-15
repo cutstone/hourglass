@@ -33,7 +33,7 @@ The SPI clock is 20 MHz on `SPI2_HOST`. To use different pins, change them under
 
 - **Rotate display 180 degrees:** use this if the picture is upside down.
 - **Use high power mode:** on by default. It gives a 32 Hz refresh for smooth animation;
-  switch it off to save power.
+  switch it off for a 1 Hz refresh.
 
 ### Test pattern
 
@@ -84,10 +84,9 @@ idf.py build
 
 ## Credits
 
-- Panel driver: [kevincoooool/esp_lcd_st7305](https://components.espressif.com/components/kevincoooool/esp_lcd_st7305)
-  (Apache-2.0), fetched by the ESP-IDF component manager at build time.
-- High power mode settings are taken from
-  [FT-tele/ST7305_MonoTFT_Arduino_Library](https://github.com/FT-tele/ST7305_MonoTFT_Arduino_Library) (MIT).
+The ST7305 init sequence and RAM layout are based on
+[FT-tele/ST7305_MonoTFT_Arduino_Library](https://github.com/FT-tele/ST7305_MonoTFT_Arduino_Library)
+(MIT). The gate voltages and auto power down setting are adjusted to the YDP290H004 datasheet.
 
 ## License
 

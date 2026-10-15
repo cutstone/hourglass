@@ -1,45 +1,30 @@
 // SPDX-License-Identifier: MIT
 #include "display.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "driver/spi_master.h"
-#include "esp_check.h"
-#include "esp_lcd_panel_io.h"
-#include "esp_lcd_panel_ops.h"
-#include "esp_lcd_st7305.h"
 #include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "sdkconfig.h"
-
-#define LCD_HOST SPI2_HOST
-
-// The panel driver takes a landscape framebuffer (PANEL_W x PANEL_H), 1 bit/px,
-// packed vertically in pages of 8 lines: byte = (y / 8) * PANEL_W + x, bit = y % 8.
-#define PANEL_W ST7305_WIDTH  // 384
-#define PANEL_H ST7305_HEIGHT // 168
-#define PANEL_FB_SIZE (PANEL_W * (PANEL_H / 8))
+#include "st7305.h"
 
 static const char *TAG = "display";
 
-static uint8_t s_fb[PANEL_FB_SIZE];
-static esp_lcd_panel_handle_t s_panel;
-static esp_lcd_panel_io_handle_t s_io;
+// The drawing coordinates are the panel's native orientation, so the framebuffer
+// goes to the driver as it is (see st7305.h for the layout).
+static uint8_t s_fb[ST7305_FB_SIZE];
+static bool s_ready;
 
-// Map portrait drawing coordinates to the panel's landscape framebuffer.
-// The panel is also mirrored along its long axis, so x is flipped there.
 static inline int fb_index(int x, int y, uint8_t *bit)
 {
 #if CONFIG_HOURGLASS_LCD_ROTATE_180
     x = DISPLAY_WIDTH - 1 - x;
     y = DISPLAY_HEIGHT - 1 - y;
 #endif
-    int px = PANEL_W - 1 - y; // portrait y runs along the panel's long axis (mirrored)
-    int py = DISPLAY_WIDTH - 1 - x;
-    *bit = (uint8_t)(1u << (py % 8));
-    return (py / 8) * PANEL_W + px;
+    *bit = (uint8_t)(1u << (y % 8));
+    return (y / 8) * DISPLAY_WIDTH + x;
 }
 
 void display_clear(void)
@@ -118,46 +103,32 @@ void display_line(int x0, int y0, int x1, int y1)
 
 esp_err_t display_init(void)
 {
-    spi_bus_config_t bus_cfg = ST7305_PANEL_BUS_SPI_CONFIG(
-        CONFIG_HOURGLASS_LCD_PIN_SCK, CONFIG_HOURGLASS_LCD_PIN_MOSI, PANEL_FB_SIZE + 8);
-    ESP_RETURN_ON_ERROR(spi_bus_initialize(LCD_HOST, &bus_cfg, SPI_DMA_CH_AUTO), TAG, "spi bus");
-
-    esp_lcd_panel_io_spi_config_t io_cfg = ST7305_PANEL_IO_SPI_CONFIG(
-        CONFIG_HOURGLASS_LCD_PIN_CS, CONFIG_HOURGLASS_LCD_PIN_DC, NULL, NULL);
-    io_cfg.pclk_hz = CONFIG_HOURGLASS_LCD_PIXEL_CLOCK_MHZ * 1000 * 1000;
-    ESP_RETURN_ON_ERROR(
-        esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)LCD_HOST, &io_cfg, &s_io), TAG,
-        "panel io");
-
-    esp_lcd_panel_dev_config_t panel_cfg = {
-        .reset_gpio_num = CONFIG_HOURGLASS_LCD_PIN_RST,
-        .bits_per_pixel = ST7305_BITS_PER_PIXEL,
-    };
-    ESP_RETURN_ON_ERROR(esp_lcd_new_panel_st7305(s_io, &panel_cfg, &s_panel), TAG, "panel");
-    ESP_RETURN_ON_ERROR(esp_lcd_panel_reset(s_panel), TAG, "reset");
-    ESP_RETURN_ON_ERROR(esp_lcd_panel_init(s_panel), TAG, "init");
-    ESP_RETURN_ON_ERROR(esp_lcd_panel_disp_on_off(s_panel, true), TAG, "display on");
-
+    const st7305_config_t cfg = {
+        .host = SPI2_HOST,
+        .pin_sck = CONFIG_HOURGLASS_LCD_PIN_SCK,
+        .pin_mosi = CONFIG_HOURGLASS_LCD_PIN_MOSI,
+        .pin_cs = CONFIG_HOURGLASS_LCD_PIN_CS,
+        .pin_dc = CONFIG_HOURGLASS_LCD_PIN_DC,
+        .pin_rst = CONFIG_HOURGLASS_LCD_PIN_RST,
+        .pixel_clock_hz = CONFIG_HOURGLASS_LCD_PIXEL_CLOCK_MHZ * 1000 * 1000,
 #if CONFIG_HOURGLASS_LCD_HIGH_POWER
-    // The driver's init leaves the panel in low power mode (slow refresh).
-    // Switch to high power mode with a 32 Hz frame rate for smooth animation.
-    ESP_RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(s_io, 0xD8, (uint8_t[]){0xA6, 0xE9}, 2), TAG,
-                        "osc");
-    ESP_RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(s_io, 0xB2, (uint8_t[]){0x12}, 1), TAG,
-                        "frame rate");
-    ESP_RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(s_io, 0x38, NULL, 0), TAG, "high power");
+        .high_power = true,
 #endif
-
+    };
+    esp_err_t err = st7305_init(&cfg);
+    if (err != ESP_OK) {
+        return err;
+    }
+    s_ready = true;
     display_clear();
-    ESP_LOGI(TAG, "ST7305 ready (%dx%d portrait)", DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    ESP_LOGI(TAG, "ready (%dx%d portrait)", DISPLAY_WIDTH, DISPLAY_HEIGHT);
     return display_flush();
 }
 
 esp_err_t display_flush(void)
 {
-    if (!s_panel) {
+    if (!s_ready) {
         return ESP_ERR_INVALID_STATE;
     }
-    // The driver always sends the whole framebuffer, regardless of the area given.
-    return esp_lcd_panel_draw_bitmap(s_panel, 0, 0, PANEL_W, PANEL_H, s_fb);
+    return st7305_flush(s_fb);
 }

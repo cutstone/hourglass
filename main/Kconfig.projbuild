@@ -40,7 +40,7 @@ menu "Hourglass hardware"
         bool "Use high power mode (32 Hz refresh)"
         default y
         help
-            The ST7305 driver leaves the panel in low power mode with a slow refresh rate.
-            High power mode is needed for smooth sand animation.
+            High power mode refreshes the panel at 32 Hz, which smooth sand animation needs.
+            Low power mode refreshes at 1 Hz.
 
 endmenu

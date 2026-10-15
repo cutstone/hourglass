@@ -1,3 +1,0 @@
-dependencies:
-  idf: ">=5.1"
-  kevincoooool/esp_lcd_st7305: "0.0.2"
